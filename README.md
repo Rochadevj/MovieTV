@@ -1,50 +1,37 @@
-# Welcome to your Expo app 👋
+# 🎬 MovieTV App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
-## Get started
+<img src=![Imagem do WhatsApp de 2025-06-30 à(s) 11 08 08_468843ac](https://github.com/user-attachments/assets/94d6f62d-6464-46cb-a2cc-e5ac85dc1e04)
+enshot.png" alt="MovieTV Preview" width="300"/>
 
-1. Install dependencies
+Aplicativo mobile para explorar filmes, com integração ao **TMDB** (The Movie Database), **Appwrite** para salvar dados e uma funcionalidade inteligente de busca por descrição com IA usando **OpenRouter** (modelo DeepSeek). Construído com **React Native (Expo)**.
 
-   ```bash
-   npm install
-   ```
+---
 
-2. Start the app
+## 🚀 Funcionalidades
 
-   ```bash
-   npx expo start
-   ```
+- 🔍 Pesquise filmes por nome
+- 🤖 Busque filmes por descrição usando IA
+- 🔥 Veja os filmes em alta
+- 🗂️ Listagem paginada de filmes
+- 💾 Backend com Appwrite (Database)
+- ⚙️ Totalmente construído com Expo Go
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 🧪 Tecnologias
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- React Native (Expo)
+- Appwrite
+- OpenRouter AI
+- TMDB API
+- TypeScript
 
-## Get a fresh project
+---
 
-When you're ready, run:
+## 📸 Demonstração
+
+📍 Insira aqui uma imagem do app rodando:
 
 ```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+📁 /assets/screenshot.png
