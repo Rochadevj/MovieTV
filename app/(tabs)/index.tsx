@@ -232,6 +232,7 @@ useEffect(() => {
             </View>
 
             <SearchBar
+              onPress={() => router.push("/search")}
               placeholder="Procure pelo seu filme"
             />
 
