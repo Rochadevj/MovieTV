@@ -1,8 +1,7 @@
 # 🎬 MovieTV App
-
-
-<img src=![Imagem do WhatsApp de 2025-06-30 à(s) 11 08 08_468843ac](https://github.com/user-attachments/assets/94d6f62d-6464-46cb-a2cc-e5ac85dc1e04)
-enshot.png" alt="MovieTV Preview" width="300"/>
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/a9fe5f32-3a5c-4313-beb6-d52566a755e8" alt="MovieTV Preview" width="250" style="border: 1px solid #ccc; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" />
+</p>
 
 Aplicativo mobile para explorar filmes, com integração ao **TMDB** (The Movie Database), **Appwrite** para salvar dados e uma funcionalidade inteligente de busca por descrição com IA usando **OpenRouter** (modelo DeepSeek). Construído com **React Native (Expo)**.
 
@@ -31,7 +30,6 @@ Aplicativo mobile para explorar filmes, com integração ao **TMDB** (The Movie 
 
 ## 📸 Demonstração
 
-📍 Insira aqui uma imagem do app rodando:
-
+📍 Imagem do app rodando:
 ```bash
 📁 /assets/screenshot.png
