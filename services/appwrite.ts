@@ -35,7 +35,7 @@ export const updateSearchCount = async (query: string, movie: Movie) => {
       });
     }
   } catch (error) {
-    console.error("Error updating search count:", error);
+    console.error("Erro ao atualizar contagem de busca:", error);
     throw error;
   }
 };
