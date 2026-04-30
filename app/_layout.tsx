@@ -6,10 +6,12 @@ import { FavoriteProvider } from "@/contexts/FavoriteContext";
 export default function RootLayout() {
   return (
     <FavoriteProvider>
-      <StatusBar hidden={true} />
-
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#030014"
+        translucent
+      />
       <Stack>
-      
         <Stack.Screen
           name="splash"
           options={{ headerShown: false }}

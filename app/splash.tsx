@@ -42,6 +42,8 @@ export default function SplashScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.orbTop} />
+      <View style={styles.orbBottom} />
       <LottieView
         source={require("@/assets/animations/MKAqlxo29g.json")}
         autoPlay
@@ -49,6 +51,7 @@ export default function SplashScreen() {
         style={styles.lottie}
       />
 
+      <Text style={styles.title}>MovieTV</Text>
       <Text style={styles.text}>Luz, câmera... carregando!</Text>
 
       <View style={styles.progressContainer}>
@@ -61,33 +64,57 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f0d23",
+    backgroundColor: "#030014",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
   },
+  orbTop: {
+    position: "absolute",
+    top: -90,
+    right: -60,
+    width: 220,
+    height: 220,
+    borderRadius: 220,
+    backgroundColor: "rgba(171, 139, 255, 0.22)",
+  },
+  orbBottom: {
+    position: "absolute",
+    bottom: -100,
+    left: -70,
+    width: 240,
+    height: 240,
+    borderRadius: 240,
+    backgroundColor: "rgba(0, 255, 247, 0.10)",
+  },
   lottie: {
-    width: 200,
-    height: 200,
+    width: 220,
+    height: 220,
+  },
+  title: {
+    color: "#FFFFFF",
+    fontSize: 34,
+    fontWeight: "900",
+    marginTop: 8,
+    letterSpacing: 1.2,
   },
   text: {
-    color: "#00FFF7",
+    color: "#D6C7FF",
     fontSize: 16,
-    marginTop: 12,
-    fontWeight: "bold",
-    fontStyle: "italic",
+    marginTop: 10,
+    fontWeight: "700",
   },
   progressContainer: {
-    height: 8,
+    height: 10,
     width: "100%",
-    backgroundColor: "#22223B",
-    borderRadius: 10,
-    marginTop: 24,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 999,
+    marginTop: 28,
     overflow: "hidden",
   },
   progressBar: {
     height: "100%",
-    backgroundColor: "#00FFF7",
-    borderRadius: 10,
+    backgroundColor: "#AB8BFF",
+    borderRadius: 999,
   },
 });
