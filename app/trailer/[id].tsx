@@ -1,41 +1,31 @@
+import { YouTubePlayer } from "@/components/YouTubePlayer";
+import { fetchTrailer } from "@/services/api";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
-import { WebView } from "react-native-webview";
 
-
-const fetchTrailerKey = async (movieId: number): Promise<string | null> => {
-  try {
-    
-    const response = await fetch(
-      `https://api.themoviedb.org/3/movie/${movieId}/videos?api_key=SUA_CHAVE_API`
-    );
-    const data = await response.json();
-    
-    
-    const trailer = data.results.find(
-      (video: any) => video.type === "Trailer" && video.site === "YouTube"
-    );
-    
-    return trailer?.key || null;
-  } catch (error) {
-    console.error("Error fetching trailer:", error);
-    return null;
-  }
-};
+const getParamValue = (value: string | string[] | undefined) =>
+  Array.isArray(value) ? value[0] : value;
 
 const TrailerScreen = () => {
   const { id } = useLocalSearchParams();
+  const movieId = getParamValue(id);
   const [videoKey, setVideoKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadTrailer = async () => {
+      if (!movieId) {
+        setVideoKey(null);
+        setLoading(false);
+        return;
+      }
+
       try {
-        const key = await fetchTrailerKey(Number(id));
+        const key = await fetchTrailer(Number(movieId));
         setVideoKey(key);
       } catch (error) {
-        console.error("Failed to load trailer:", error);
+        console.error("Erro ao carregar trailer:", error);
         setVideoKey(null);
       } finally {
         setLoading(false);
@@ -43,7 +33,7 @@ const TrailerScreen = () => {
     };
 
     loadTrailer();
-  }, [id]);
+  }, [movieId]);
 
   if (loading) {
     return (
@@ -63,15 +53,7 @@ const TrailerScreen = () => {
     );
   }
 
-  return (
-    <WebView
-      source={{ uri: `https://www.youtube.com/embed/${videoKey}?autoplay=1` }}
-      style={{ flex: 1 }}
-      allowsFullscreenVideo
-      javaScriptEnabled
-      domStorageEnabled
-    />
-  );
+  return <YouTubePlayer videoKey={videoKey} style={{ flex: 1 }} />;
 };
 
 export default TrailerScreen;
