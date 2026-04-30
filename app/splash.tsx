@@ -1,24 +1,13 @@
 import { useRouter } from "expo-router";
 import LottieView from "lottie-react-native";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
 
 export default function SplashScreen() {
   const router = useRouter();
-
-  const [progress, setProgress] = useState(0);
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-  
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        const next = prev + 0.02;
-        if (next >= 1) clearInterval(interval);
-        return next >= 1 ? 1 : next;
-      });
-    }, 60);
-
     Animated.timing(progressAnim, {
       toValue: 1,
       duration: 3000,
@@ -30,10 +19,9 @@ export default function SplashScreen() {
     }, 3200);
 
     return () => {
-      clearInterval(interval);
       clearTimeout(timeout);
     };
-  }, []);
+  }, [progressAnim, router]);
 
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],
