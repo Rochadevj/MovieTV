@@ -22,7 +22,7 @@ const AISearchModal = ({ visible, onDismiss, onSearch }: AISearchModalProps) => 
       const movies = await onSearch(query);
       setResults(movies);
     } catch (error) {
-      console.error("Search error:", error);
+      console.error("Erro na busca:", error);
     } finally {
       setLoading(false);
     }
