@@ -8,14 +8,11 @@
     "scheme": "movieapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-
     "splash": {
-  "image": "./assets/images/logo3.png",
-  "resizeMode": "contain",
-  "backgroundColor": "#0f0d23"
-},
-
-
+      "image": "./assets/images/logo3.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f0d23"
+    },
     "ios": {
       "supportsTablet": true
     },
@@ -43,7 +40,8 @@
           "backgroundColor": "#0f0d23"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

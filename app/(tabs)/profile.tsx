@@ -1,7 +1,6 @@
 import { avatars } from "@/constants/avatars";
 import { useEffect, useState } from "react";
-import { FlatList, Image, Modal, Text, TouchableOpacity, View } from "react-native";
-import { Avatars } from "react-native-appwrite";
+import { FlatList, Image, ImageSourcePropType, Modal, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const getRandomUsername = () => {
@@ -29,7 +28,7 @@ const Profile = () => {
     setShowModal(true);
   };
 
-  const handleAvatarSelect = (avatar: Avatars) => {
+  const handleAvatarSelect = (avatar: ImageSourcePropType) => {
     setSelectedAvatar(avatar);
     setShowModal(false);
   };
