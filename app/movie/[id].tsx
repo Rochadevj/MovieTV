@@ -1,59 +1,108 @@
 import { icons } from "@/constants/icons";
+import { useFavorites } from "@/contexts/FavoriteContext";
 import { fetchMovieDetails, fetchTrailer } from "@/services/api";
 import useFetch from "@/services/usefetch";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  ImageBackground,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-interface MovieInfoProps {
-  label: string;
-  value?: string | number | null;
-}
 
-const MovieInfo = ({ label, value }: MovieInfoProps) => (
-  <View className="flex-col items-start justify-center mt-5">
-    <Text className="text-light-200 font-normal text-sm">{label}</Text>
-    <Text className="text-light-100 font-bold text-sm mt-2">
-      {value || "N/A"}
-    </Text>
-  </View>
-);
+const imageUrl = (path?: string | null, size = "w780") =>
+  path ? `https://image.tmdb.org/t/p/${size}${path}` : null;
+
+const formatRuntime = (runtime?: number | null) => {
+  if (!runtime) return "N/A";
+  const hours = Math.floor(runtime / 60);
+  const minutes = runtime % 60;
+  return hours ? `${hours}h ${minutes}min` : `${minutes}min`;
+};
+
+const formatMoney = (value?: number | null) => {
+  if (!value) return "N/A";
+  return Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
+};
+
+const formatDate = (date?: string | null) => {
+  if (!date) return "N/A";
+  const parsedDate = new Date(`${date}T00:00:00`);
+  return Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(parsedDate);
+};
+
+const formatStatus = (status?: string | null) => {
+  const statusMap: Record<string, string> = {
+    Released: "Lançado",
+    "Post Production": "Pós-produção",
+    "In Production": "Em produção",
+    Planned: "Planejado",
+    Rumored: "Rumor",
+    Canceled: "Cancelado",
+  };
+
+  return status ? statusMap[status] ?? status : "N/A";
+};
 
 const Details = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { toggleFavorite, isFavorite } = useFavorites();
+  const [trailerLoading, setTrailerLoading] = useState(false);
 
-  const { data: movie, loading } = useFetch(() =>
+  const { data: movie, loading, error } = useFetch(() =>
     fetchMovieDetails(id as string)
   );
 
- 
+  const favorite = movie ? isFavorite(movie.id) : false;
+  const heroImage = imageUrl(movie?.backdrop_path, "w780") ?? imageUrl(movie?.poster_path, "w780");
+  const posterImage = imageUrl(movie?.poster_path, "w500");
+  const year = movie?.release_date?.split("-")[0] ?? "N/A";
 
+  const handlePlayPress = async () => {
+    try {
+      setTrailerLoading(true);
+      const trailerKey = await fetchTrailer(Number(id));
 
-
-const handlePlayPress = async () => {
-  try {
-    const trailerKey = await fetchTrailer(Number(id)); 
-    
-    if (trailerKey) {
-      router.push({
-        pathname: "/trailer",
-        params: { videoKey: trailerKey, title: movie?.title }
-      });
-    } else {
-      alert("Trailer não disponível");
+      if (trailerKey) {
+        router.push({
+          pathname: "/trailer",
+          params: { videoKey: trailerKey, title: movie?.title },
+        });
+      } else {
+        alert("Trailer não disponível");
+      }
+    } catch (err) {
+      console.error("Erro:", err);
+      alert("Erro ao buscar trailer");
+    } finally {
+      setTrailerLoading(false);
     }
-  } catch (error) {
-    console.error("Erro:", error);
-    alert("Erro ao buscar trailer");
-  }
-};
+  };
+
+  const handleFavoritePress = () => {
+    if (!movie) return;
+    toggleFavorite({
+      id: movie.id,
+      poster_path: movie.poster_path ?? "",
+      title: movie.title,
+      vote_average: movie.vote_average,
+      release_date: movie.release_date,
+    });
+  };
 
   if (loading) {
     return (
@@ -63,111 +112,217 @@ const handlePlayPress = async () => {
     );
   }
 
+  if (error || !movie) {
+    return (
+      <SafeAreaView className="bg-primary flex-1 items-center justify-center px-6">
+        <Text className="text-center text-xl font-bold text-white">
+          Não foi possível carregar o filme.
+        </Text>
+        <Text className="mt-2 text-center text-sm text-light-200">
+          Tente voltar e abrir o filme novamente.
+        </Text>
+        <TouchableOpacity
+          onPress={router.back}
+          className="mt-6 rounded-full bg-accent px-6 py-3"
+        >
+          <Text className="font-bold text-primary">Voltar</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <View className="flex-1 bg-primary">
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 36 }}>
         <View className="relative">
-          <Image
-            source={{
-              uri: `https://image.tmdb.org/t/p/w500${movie?.poster_path}`,
-            }}
-            className="w-full h-[560px]"
+          <ImageBackground
+            source={{ uri: heroImage ?? "https://placehold.co/900x600/030014/D6C7FF.png" }}
+            className="h-[520px] justify-end"
             resizeMode="cover"
-          />
-
-          <View className="absolute inset-0 bg-primary/35" />
-
-          <View className="absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-primary to-transparent" />
-
-          <TouchableOpacity
-            className="absolute bottom-6 right-5 rounded-full h-14 w-14 bg-accent flex items-center justify-center shadow-lg"
-            onPress={handlePlayPress}
           >
-            <Image
-              source={icons.play}
-              className="w-6 h-7 ml-1"
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
-        </View>
+            <View className="absolute inset-0 bg-black/35" />
+            <View className="absolute bottom-0 left-0 right-0 h-64 bg-primary/90" />
 
-        <View className="-mt-10 rounded-t-[32px] bg-primary px-5 pt-6">
-          <View className="flex-row items-start justify-between gap-4">
-            <View className="flex-1">
-              <Text className="text-white font-black text-3xl">{movie?.title}</Text>
-              <View className="mt-3 flex-row items-center gap-x-2">
-                <Text className="text-light-200 text-sm">
-                  {movie?.release_date?.split("-")[0]} •
-                </Text>
-                <Text className="text-light-200 text-sm">{movie?.runtime}m</Text>
+            <SafeAreaView className="absolute left-0 right-0 top-0 px-5">
+              <View className="mt-2 flex-row items-center justify-between">
+                <IconButton icon={icons.arrow} rotate onPress={router.back} />
+                <IconButton
+                  icon={icons.save}
+                  active={favorite}
+                  onPress={handleFavoritePress}
+                />
+              </View>
+            </SafeAreaView>
+
+            <View className="px-5 pb-6">
+              <View className="flex-row gap-4">
+                <View className="h-44 w-28 overflow-hidden rounded-2xl border border-white/15 bg-dark-200">
+                  <Image
+                    source={{ uri: posterImage ?? "https://placehold.co/500x750/0f0d23/D6C7FF.png" }}
+                    className="h-full w-full"
+                    resizeMode="cover"
+                  />
+                </View>
+
+                <View className="flex-1 justify-end">
+                  <Text className="text-xs uppercase tracking-[2px] text-light-300">
+                    {year}
+                  </Text>
+                  <Text className="mt-2 text-3xl font-black text-white" numberOfLines={3}>
+                    {movie.title}
+                  </Text>
+                  {movie.tagline ? (
+                    <Text className="mt-2 text-sm italic text-light-200" numberOfLines={2}>
+                      {movie.tagline}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+
+              <View className="mt-5 flex-row flex-wrap gap-2">
+                <MetaPill label={`${movie.vote_average.toFixed(1)}/10`} icon={icons.star} />
+                <MetaPill label={formatRuntime(movie.runtime)} />
+                <MetaPill label={formatStatus(movie.status)} />
+              </View>
+
+              <View className="mt-5 flex-row gap-3">
+                <TouchableOpacity
+                  onPress={handlePlayPress}
+                  activeOpacity={0.85}
+                  disabled={trailerLoading}
+                  className="h-14 flex-1 flex-row items-center justify-center rounded-2xl bg-accent"
+                >
+                  {trailerLoading ? (
+                    <ActivityIndicator size="small" color="#030014" />
+                  ) : (
+                    <>
+                      <Image
+                        source={icons.play}
+                        className="mr-2 h-5 w-5"
+                        tintColor="#030014"
+                        resizeMode="contain"
+                      />
+                      <Text className="font-black text-primary">Assistir trailer</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleFavoritePress}
+                  activeOpacity={0.85}
+                  className={`h-14 w-14 items-center justify-center rounded-2xl border ${
+                    favorite ? "border-accent bg-accent" : "border-white/10 bg-white/5"
+                  }`}
+                >
+                  <Image
+                    source={icons.save}
+                    className="h-5 w-5"
+                    tintColor={favorite ? "#030014" : "#FFFFFF"}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
               </View>
             </View>
+          </ImageBackground>
+        </View>
 
-            <View className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
-              <Text className="text-[10px] uppercase tracking-[2px] text-light-300">Nota</Text>
-              <Text className="mt-1 text-center text-lg font-bold text-white">
-                {Math.round(movie?.vote_average ?? 0)}/10
-              </Text>
+        <View className="px-5 pt-6">
+          <SectionTitle eyebrow="Sinopse" title="Sobre o filme" />
+          <Text className="mt-3 text-base leading-7 text-light-100">
+            {movie.overview || "Sinopse não disponível."}
+          </Text>
+
+          <View className="mt-7">
+            <SectionTitle eyebrow="Gêneros" title="Categorias" />
+            <View className="mt-3 flex-row flex-wrap gap-2">
+              {movie.genres?.length ? (
+                movie.genres.map((genre) => (
+                  <View key={genre.id} className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
+                    <Text className="text-sm font-semibold text-light-100">{genre.name}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text className="text-sm text-light-200">Gêneros não informados.</Text>
+              )}
             </View>
           </View>
 
-          <View className="mt-4 flex-row flex-wrap gap-2">
-            <View className="flex-row items-center rounded-full bg-white/5 px-3 py-2">
-              <Image source={icons.star} className="size-4" />
-              <Text className="ml-2 text-white font-semibold text-sm">
-                {Math.round(movie?.vote_average ?? 0)}/10
-              </Text>
-            </View>
-
-            <View className="rounded-full bg-accent/10 px-3 py-2">
-              <Text className="text-accent text-sm font-semibold">
-                {movie?.vote_count} votos
-              </Text>
+          <View className="mt-7">
+            <SectionTitle eyebrow="Dados" title="Informações" />
+            <View className="mt-3 flex-row flex-wrap gap-3">
+              <InfoCard label="Lançamento" value={formatDate(movie.release_date)} />
+              <InfoCard label="Duração" value={formatRuntime(movie.runtime)} />
+              <InfoCard label="Avaliação" value={`${movie.vote_average.toFixed(1)}/10`} />
+              <InfoCard label="Votos" value={movie.vote_count.toLocaleString("pt-BR")} />
+              <InfoCard label="Orçamento" value={formatMoney(movie.budget)} />
+              <InfoCard label="Receita" value={formatMoney(movie.revenue)} />
             </View>
           </View>
 
-          <MovieInfo label="Resumo" value={movie?.overview} />
-          <MovieInfo
-            label="Gênero"
-            value={movie?.genres?.map((g) => g.name).join(" • ") || "N/A"}
-          />
-
-          <View className="mt-2 flex-row justify-between gap-3">
-            <MovieInfo
-              label="Orçamento"
-              value={`$${(movie?.budget ?? 0) / 1_000_000} mi`}
-            />
-            <MovieInfo
-              label="Receita"
-              value={`$${Math.round(
-                (movie?.revenue ?? 0) / 1_000_000
-              )} mi`}
-            />
+          <View className="mt-7">
+            <SectionTitle eyebrow="Estúdio" title="Produção" />
+            <Text className="mt-3 text-base leading-6 text-light-100">
+              {movie.production_companies?.length
+                ? movie.production_companies.map((company) => company.name).join(" • ")
+                : "Produtoras não informadas."}
+            </Text>
           </View>
-
-          <MovieInfo
-            label="Produção"
-            value={
-              movie?.production_companies?.map((c) => c.name).join(" • ") ||
-              "N/A"
-            }
-          />
         </View>
       </ScrollView>
-
-      <TouchableOpacity
-        className="absolute bottom-6 left-0 right-0 mx-5 flex flex-row items-center justify-center rounded-full bg-accent py-4 z-50"
-        onPress={router.back}
-      >
-        <Image
-          source={icons.arrow}
-          className="size-5 mr-1 mt-0.5 rotate-180"
-          tintColor="#fff"
-        />
-        <Text className="text-white font-semibold text-base">Voltar</Text>
-      </TouchableOpacity>
     </View>
   );
 };
+
+const IconButton = ({
+  icon,
+  onPress,
+  active = false,
+  rotate = false,
+}: {
+  icon: any;
+  onPress: () => void;
+  active?: boolean;
+  rotate?: boolean;
+}) => (
+  <TouchableOpacity
+    onPress={onPress}
+    activeOpacity={0.8}
+    className={`h-11 w-11 items-center justify-center rounded-full border ${
+      active ? "border-accent bg-accent" : "border-white/10 bg-black/45"
+    }`}
+  >
+    <Image
+      source={icon}
+      className={`h-5 w-5 ${rotate ? "rotate-180" : ""}`}
+      tintColor={active ? "#030014" : "#FFFFFF"}
+      resizeMode="contain"
+    />
+  </TouchableOpacity>
+);
+
+const MetaPill = ({ label, icon }: { label: string; icon?: any }) => (
+  <View className="flex-row items-center rounded-full border border-white/10 bg-black/35 px-3 py-2">
+    {icon ? (
+      <Image source={icon} className="mr-1.5 h-4 w-4" resizeMode="contain" />
+    ) : null}
+    <Text className="text-sm font-bold text-white">{label}</Text>
+  </View>
+);
+
+const SectionTitle = ({ eyebrow, title }: { eyebrow: string; title: string }) => (
+  <View>
+    <Text className="text-xs uppercase tracking-[2px] text-light-300">{eyebrow}</Text>
+    <Text className="mt-1 text-xl font-black text-white">{title}</Text>
+  </View>
+);
+
+const InfoCard = ({ label, value }: { label: string; value: string }) => (
+  <View className="min-h-24 w-[47.5%] justify-between rounded-2xl border border-white/10 bg-white/5 p-4">
+    <Text className="text-xs uppercase tracking-[1px] text-light-300">{label}</Text>
+    <Text className="mt-3 text-base font-bold text-white" numberOfLines={2}>
+      {value}
+    </Text>
+  </View>
+);
 
 export default Details;
