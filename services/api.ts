@@ -8,6 +8,20 @@ export type MovieGenre = {
   name: string;
 };
 
+export type WatchProvider = {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string | null;
+  display_priority: number;
+};
+
+export type WatchProviders = {
+  link?: string;
+  flatrate?: WatchProvider[];
+  rent?: WatchProvider[];
+  buy?: WatchProvider[];
+};
+
 const getHeaders = () => {
   if (!TMDB_CONFIG.API_KEY) {
     throw new Error(
@@ -131,6 +145,31 @@ export const fetchTrailer = async (movieId: number): Promise<string | null> => {
     return trailer?.key || null;
   } catch (error) {
     console.error("Erro ao buscar trailer:", error);
+    return null;
+  }
+};
+
+export const fetchWatchProviders = async (
+  movieId: number,
+  country = "BR"
+): Promise<WatchProviders | null> => {
+  try {
+    const response = await fetch(
+      `${TMDB_CONFIG.BASE_URL}/movie/${movieId}/watch/providers`,
+      {
+        method: "GET",
+        headers: getHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Erro ao buscar plataformas: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.results?.[country] ?? null;
+  } catch (error) {
+    console.error("Erro ao buscar plataformas:", error);
     return null;
   }
 };
