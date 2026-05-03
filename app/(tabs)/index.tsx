@@ -7,12 +7,16 @@ import {
   FlatList,
   Image,
   ImageBackground,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { Button, Modal } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import GenreFilter from "@/components/GenreFilter";
@@ -22,14 +26,7 @@ import TrendingCard from "@/components/TrendingCard";
 import { icons } from "@/constants/icons";
 import { images } from "@/constants/images";
 import { TMDB_CONFIG, fetchMovies } from "@/services/api";
-
-type Movie = {
-  id: number;
-  poster_path: string;
-  title: string;
-  vote_average: number;
-  release_date: string;
-};
+import type { Movie } from "@/types";
 
 type TrendingMovie = {
   movie_id: number;
@@ -43,6 +40,24 @@ type TabParamList = {
   save: undefined;
   profile: undefined;
 };
+
+const AI_EXAMPLES = [
+  "Suspense psicológico com final surpreendente",
+  "Comédia leve para assistir em família",
+  "Terror sobrenatural com clima pesado",
+];
+
+const parseMovieTitles = (text: string) =>
+  text
+    .split("\n")
+    .map((title) =>
+      title
+        .replace(/^\s*[-*\d.)]+\s*/, "")
+        .replace(/^["']|["']$/g, "")
+        .trim()
+    )
+    .filter(Boolean)
+    .slice(0, 4);
 
 const Index = () => {
   const router = useRouter();
@@ -61,6 +76,8 @@ const Index = () => {
   const [aiResults, setAiResults] = useState<Movie[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSearchQuery, setAiSearchQuery] = useState("");
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiHasSearched, setAiHasSearched] = useState(false);
 
   const featuredMovie = trendingMovies[0];
   const renderMovie = ({ item }: { item: Movie }) => <MovieCard {...item} />;
@@ -141,14 +158,47 @@ const Index = () => {
     setPage(1);
   };
 
+  const resetAiSearch = () => {
+    setAiSearchQuery("");
+    setAiResults([]);
+    setAiError(null);
+    setAiHasSearched(false);
+  };
+
+  const openAiModal = () => {
+    setAiModalVisible(true);
+    setAiError(null);
+  };
+
+  const closeAiModal = () => {
+    setAiModalVisible(false);
+    resetAiSearch();
+  };
+
+  const handleAiQueryChange = (value: string) => {
+    setAiSearchQuery(value);
+    setAiError(null);
+    setAiHasSearched(false);
+  };
+
   const searchMoviesByDescription = async (description: string) => {
+    const trimmedDescription = description.trim();
+
+    if (trimmedDescription.length < 8) {
+      setAiError("Descreva um pouco melhor o tipo de filme que você quer.");
+      return;
+    }
+
     setAiLoading(true);
     setAiResults([]);
+    setAiError(null);
+    setAiHasSearched(false);
 
     const apiKey = process.env.EXPO_PUBLIC_OPENROUTER_API_KEY;
     if (!apiKey) {
-      alert("Chave da API OpenRouter não configurada");
+      setAiError("A chave EXPO_PUBLIC_OPENROUTER_API_KEY não está configurada.");
       setAiLoading(false);
+      setAiHasSearched(true);
       return;
     }
 
@@ -158,19 +208,22 @@ const Index = () => {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
+          "HTTP-Referer": "https://movietv.app",
+          "X-Title": "MovieTV",
         },
         body: JSON.stringify({
-          model: "deepseek/deepseek-r1-0528",
+          model: process.env.EXPO_PUBLIC_OPENROUTER_MODEL ?? "deepseek/deepseek-chat",
           max_tokens: 500,
+          temperature: 0.4,
           messages: [
             {
               role: "system",
               content:
-                "Você é um especialista em cinema. A partir de uma descrição, retorne apenas nomes de filmes reais que combinem com a descrição. Use nomes em português.",
+                "Você é um especialista em cinema. Retorne apenas nomes de filmes reais, um por linha, sem explicações, sem numeração e sem comentários.",
             },
             {
               role: "user",
-              content: `Baseado nesta descrição: "${description}", me diga de 1 a 3 filmes que se encaixem perfeitamente. Responda apenas os nomes, um por linha.`,
+              content: `Baseado nesta descrição: "${trimmedDescription}", indique de 1 a 4 filmes que combinem. Use títulos conhecidos no Brasil quando possível.`,
             },
           ],
         }),
@@ -186,33 +239,27 @@ const Index = () => {
 
       if (!textResponse) throw new Error("Resposta da IA vazia");
 
-      const movieTitles: string[] = textResponse
-        .split("\n")
-        .map((title: string) => title.trim())
-        .filter((title: string) => title.length > 0);
-
+      const movieTitles = parseMovieTitles(textResponse);
       const results: Movie[] = [];
+      const usedIds = new Set<number>();
 
       for (const title of movieTitles) {
-        const tmdbRes = await fetch(
-          `${TMDB_CONFIG.BASE_URL}/search/movie?query=${encodeURIComponent(title)}&language=pt-BR`,
-          {
-            headers: {
-              accept: "application/json",
-              Authorization: `Bearer ${TMDB_CONFIG.API_KEY}`,
-            },
-          }
-        );
-        const data = await tmdbRes.json();
-        if (data.results?.length) results.push(data.results[0]);
+        const tmdbResults = await fetchMovies({ query: title, page: 1 });
+        const movie = tmdbResults[0];
+
+        if (movie && !usedIds.has(movie.id)) {
+          results.push(movie);
+          usedIds.add(movie.id);
+        }
       }
 
       setAiResults(results);
     } catch (err) {
       console.error("Erro detalhado:", err);
-      alert("Erro ao buscar filmes com IA");
+      setAiError("Não foi possível buscar com IA agora. Tente novamente em instantes.");
     } finally {
       setAiLoading(false);
+      setAiHasSearched(true);
     }
   };
 
@@ -242,18 +289,14 @@ const Index = () => {
             </View>
 
             <View className="mt-5 px-5">
-              <SearchBar onPress={() => router.push("/search")} placeholder="Buscar filme, ator ou gênero" />
+              <SearchBar
+                onPress={() => router.push("/search")}
+                placeholder="Buscar filme, ator ou gênero"
+              />
             </View>
 
             <View className="mt-3 px-5">
-              <TouchableOpacity
-                onPress={() => setAiModalVisible(true)}
-                activeOpacity={0.85}
-                className="h-12 flex-row items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-300"
-              >
-                <Image source={icons.search} className="mr-2 h-5 w-5" tintColor="#030014" />
-                <Text className="text-sm font-black text-primary">Busca por IA</Text>
-              </TouchableOpacity>
+              <AIFinderCard onPress={openAiModal} />
             </View>
 
             {featuredMovie ? (
@@ -273,7 +316,9 @@ const Index = () => {
                   <View className="p-4">
                     <View className="mb-3 flex-row items-center justify-between">
                       <View className="rounded-full bg-white/90 px-3 py-1">
-                        <Text className="text-xs font-black uppercase text-primary">Destaque</Text>
+                        <Text className="text-xs font-black uppercase text-primary">
+                          Destaque
+                        </Text>
                       </View>
                       <Text className="rounded-full bg-black/55 px-3 py-1 text-xs font-bold text-white">
                         Em alta hoje
@@ -288,7 +333,11 @@ const Index = () => {
                         Abrir detalhes
                       </Text>
                       <View className="h-10 w-10 items-center justify-center rounded-full bg-accent">
-                        <Image source={icons.play} className="h-5 w-5" tintColor="#030014" />
+                        <Image
+                          source={icons.play}
+                          className="h-5 w-5"
+                          tintColor="#030014"
+                        />
                       </View>
                     </View>
                   </View>
@@ -309,7 +358,11 @@ const Index = () => {
                 action={trendingMovies.length ? "Top 9" : undefined}
               />
               {trendingLoading ? (
-                <ActivityIndicator size="large" color="#D6C7FF" className="mt-6 self-center" />
+                <ActivityIndicator
+                  size="large"
+                  color="#D6C7FF"
+                  className="mt-6 self-center"
+                />
               ) : trendingMovies.length > 0 ? (
                 <FlatList
                   initialNumToRender={9}
@@ -318,9 +371,15 @@ const Index = () => {
                   horizontal
                   data={trendingMovies.slice(0, 9)}
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 14, paddingHorizontal: 20, paddingTop: 12 }}
+                  contentContainerStyle={{
+                    gap: 14,
+                    paddingHorizontal: 20,
+                    paddingTop: 12,
+                  }}
                   keyExtractor={(item) => `trending-${item.movie_id}`}
-                  renderItem={({ item, index }) => <TrendingCard movie={item} index={index} />}
+                  renderItem={({ item, index }) => (
+                    <TrendingCard movie={item} index={index} />
+                  )}
                 />
               ) : null}
             </View>
@@ -368,111 +427,26 @@ const Index = () => {
         }
       />
 
-      <Modal
+      <AISearchModal
         visible={aiModalVisible}
-        onDismiss={() => {
-          setAiModalVisible(false);
-          setAiSearchQuery("");
-          setAiResults([]);
+        query={aiSearchQuery}
+        results={aiResults}
+        loading={aiLoading}
+        error={aiError}
+        hasSearched={aiHasSearched}
+        onClose={closeAiModal}
+        onChangeQuery={handleAiQueryChange}
+        onSearch={() => searchMoviesByDescription(aiSearchQuery)}
+        onUseExample={(example) => {
+          setAiSearchQuery(example);
+          setAiError(null);
+          setAiHasSearched(false);
         }}
-        contentContainerStyle={{
-          backgroundColor: "#0F0D23",
-          padding: 20,
-          margin: 18,
-          borderRadius: 20,
-          maxHeight: "82%",
-          borderWidth: 1,
-          borderColor: "rgba(255,255,255,0.08)",
+        onOpenMovie={(movieId) => {
+          closeAiModal();
+          router.push(`/movie/${movieId}`);
         }}
-      >
-        <Text className="text-xs uppercase tracking-[2px] text-light-300">Busca por IA</Text>
-        <Text className="mt-2 text-2xl font-bold text-white">Descreva o clima do filme</Text>
-        <Text className="mt-2 text-sm text-light-200">
-          Exemplo: um suspense futurista com perseguições em Tóquio.
-        </Text>
-
-        <TextInput
-          placeholder="Ex: Um filme sobre hackers com cenas de ação em Tóquio"
-          placeholderTextColor="#A8B5DB"
-          value={aiSearchQuery}
-          className="mt-4 min-h-28 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-white"
-          multiline
-          textAlignVertical="top"
-          onChangeText={setAiSearchQuery}
-        />
-
-        <View className="mt-4 flex-row gap-3">
-          <Button
-            mode="contained"
-            onPress={() => searchMoviesByDescription(aiSearchQuery)}
-            loading={aiLoading}
-            disabled={aiLoading || !aiSearchQuery.trim()}
-            style={{ flex: 1, backgroundColor: "#AB8BFF" }}
-            labelStyle={{ color: "#030014", fontWeight: "700" }}
-          >
-            Buscar
-          </Button>
-
-          <Button
-            mode="outlined"
-            onPress={() => {
-              setAiModalVisible(false);
-              setAiSearchQuery("");
-            }}
-            style={{ flex: 1, borderColor: "rgba(255,255,255,0.18)" }}
-            textColor="#fff"
-          >
-            Cancelar
-          </Button>
-        </View>
-
-        {aiLoading ? (
-          <View style={{ marginTop: 20 }}>
-            <ActivityIndicator size="large" color="#D6C7FF" />
-            <Text style={{ textAlign: "center", marginTop: 10, color: "#A8B5DB" }}>
-              Consultando a IA...
-            </Text>
-          </View>
-        ) : aiResults.length > 0 ? (
-          <View style={{ marginTop: 15 }}>
-            <Text className="mb-3 font-bold text-white">Resultados encontrados</Text>
-
-            <FlatList
-              data={aiResults}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  className="mb-3 flex-row items-center rounded-2xl border border-white/10 bg-white/5 p-3"
-                  onPress={() => {
-                    router.push(`/movie/${item.id}`);
-                    setAiModalVisible(false);
-                  }}
-                >
-                  <Image
-                    source={{
-                      uri: item.poster_path
-                        ? `https://image.tmdb.org/t/p/w200${item.poster_path}`
-                        : images.bg,
-                    }}
-                    style={{ width: 56, height: 82, borderRadius: 12 }}
-                  />
-                  <View style={{ marginLeft: 12, flex: 1 }}>
-                    <Text style={{ fontWeight: "bold", color: "#fff" }}>{item.title}</Text>
-                    <Text style={{ fontSize: 12, color: "#A8B5DB", marginTop: 4 }}>
-                      Nota {item.vote_average.toFixed(1)} | {item.release_date?.split("-")[0]}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-              style={{ maxHeight: 200 }}
-            />
-          </View>
-        ) : aiSearchQuery && !aiLoading ? (
-          <Text style={{ textAlign: "center", marginTop: 20, color: "#A8B5DB" }}>
-            Nenhum filme encontrado. Tente descrever de outra forma.
-          </Text>
-        ) : null}
-      </Modal>
+      />
     </SafeAreaView>
   );
 };
@@ -525,6 +499,225 @@ const BrandHeader = () => (
       <Text className="text-xs font-bold text-light-100">BR</Text>
     </View>
   </View>
+);
+
+const AIFinderCard = ({ onPress }: { onPress: () => void }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    activeOpacity={0.86}
+    className="rounded-2xl border border-accent/25 bg-dark-200/95 p-4"
+  >
+    <View className="flex-row items-center">
+      <View className="h-11 w-11 items-center justify-center rounded-2xl bg-accent">
+        <Image
+          source={icons.search}
+          className="h-5 w-5"
+          tintColor="#030014"
+          resizeMode="contain"
+        />
+      </View>
+
+      <View className="ml-3 flex-1">
+        <Text className="text-base font-black text-white">Encontrar com IA</Text>
+        <Text className="mt-1 text-sm leading-5 text-light-200">
+          Descreva uma ideia, clima ou gênero e receba sugestões.
+        </Text>
+      </View>
+    </View>
+  </TouchableOpacity>
+);
+
+const AISearchModal = ({
+  visible,
+  query,
+  results,
+  loading,
+  error,
+  hasSearched,
+  onClose,
+  onChangeQuery,
+  onSearch,
+  onUseExample,
+  onOpenMovie,
+}: {
+  visible: boolean;
+  query: string;
+  results: Movie[];
+  loading: boolean;
+  error: string | null;
+  hasSearched: boolean;
+  onClose: () => void;
+  onChangeQuery: (value: string) => void;
+  onSearch: () => void;
+  onUseExample: (example: string) => void;
+  onOpenMovie: (movieId: number) => void;
+}) => (
+  <Modal
+    visible={visible}
+    transparent
+    animationType="fade"
+    onRequestClose={onClose}
+    statusBarTranslucent
+  >
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      className="flex-1 justify-end bg-black/70"
+    >
+      <Pressable className="flex-1" onPress={onClose} />
+
+      <View className="max-h-[88%] rounded-t-[28px] border border-white/10 bg-dark-200 px-5 pb-6 pt-5">
+        <View className="mb-4 h-1.5 w-12 self-center rounded-full bg-white/20" />
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 10 }}
+        >
+          <View className="flex-row items-start justify-between">
+            <View className="flex-1 pr-4">
+              <Text className="text-xs uppercase tracking-[2px] text-light-300">
+                Busca por IA
+              </Text>
+              <Text className="mt-1 text-2xl font-black text-white">
+                Descreva o filme ideal
+              </Text>
+              <Text className="mt-2 text-sm leading-5 text-light-200">
+                Escreva o clima, tema ou estilo. A IA sugere títulos e o app busca os filmes no catálogo.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={onClose}
+              activeOpacity={0.8}
+              className="h-10 w-10 items-center justify-center rounded-full bg-white/10"
+            >
+              <Text className="text-lg font-black text-white">×</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TextInput
+            placeholder="Ex: um suspense futurista com perseguições em Tóquio"
+            placeholderTextColor="#A8B5DB"
+            value={query}
+            className="mt-5 min-h-28 rounded-2xl border border-white/10 bg-primary px-4 py-4 text-base text-white"
+            multiline
+            textAlignVertical="top"
+            editable={!loading}
+            onChangeText={onChangeQuery}
+          />
+
+          <View className="mt-3 flex-row flex-wrap gap-2">
+            {AI_EXAMPLES.map((example) => (
+              <TouchableOpacity
+                key={example}
+                onPress={() => onUseExample(example)}
+                disabled={loading}
+                activeOpacity={0.85}
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-2"
+              >
+                <Text className="text-xs font-semibold text-light-100">
+                  {example}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {error ? (
+            <View className="mt-4 rounded-2xl border border-red-500/25 bg-red-500/10 p-3">
+              <Text className="text-sm font-semibold text-red-100">{error}</Text>
+            </View>
+          ) : null}
+
+          <View className="mt-5 flex-row gap-3">
+            <TouchableOpacity
+              onPress={onSearch}
+              activeOpacity={0.86}
+              disabled={loading || !query.trim()}
+              className={`h-14 flex-1 items-center justify-center rounded-2xl ${
+                loading || !query.trim() ? "bg-white/10" : "bg-accent"
+              }`}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#D6C7FF" />
+              ) : (
+                <Text
+                  className={`font-black ${
+                    query.trim() ? "text-primary" : "text-light-300"
+                  }`}
+                >
+                  Buscar filmes
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={onClose}
+              activeOpacity={0.86}
+              disabled={loading}
+              className="h-14 w-28 items-center justify-center rounded-2xl border border-white/10 bg-white/5"
+            >
+              <Text className="font-bold text-white">Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+
+          {loading ? (
+            <View className="mt-6 items-center rounded-2xl border border-white/10 bg-white/5 p-5">
+              <ActivityIndicator size="large" color="#D6C7FF" />
+              <Text className="mt-3 text-center text-sm font-semibold text-light-200">
+                Consultando a IA e buscando no TMDB...
+              </Text>
+            </View>
+          ) : results.length > 0 ? (
+            <View className="mt-6">
+              <Text className="mb-3 text-base font-black text-white">
+                Resultados encontrados
+              </Text>
+
+              {results.map((item) => (
+                <TouchableOpacity
+                  key={`ai-result-${item.id}`}
+                  className="mb-3 flex-row items-center rounded-2xl border border-white/10 bg-white/5 p-3"
+                  activeOpacity={0.85}
+                  onPress={() => onOpenMovie(item.id)}
+                >
+                  <Image
+                    source={{
+                      uri: item.poster_path
+                        ? `https://image.tmdb.org/t/p/w200${item.poster_path}`
+                        : "https://placehold.co/400x600/0f0d23/D6C7FF.png",
+                    }}
+                    className="h-24 w-16 rounded-xl"
+                    resizeMode="cover"
+                  />
+
+                  <View className="ml-3 flex-1">
+                    <Text className="text-base font-black text-white" numberOfLines={2}>
+                      {item.title}
+                    </Text>
+                    <Text className="mt-1 text-sm font-semibold text-light-200">
+                      Nota {item.vote_average.toFixed(1)} • {item.release_date?.split("-")[0] ?? "N/A"}
+                    </Text>
+                    <Text className="mt-2 text-xs font-bold uppercase tracking-[1px] text-accent">
+                      Abrir detalhes
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : hasSearched && !error ? (
+            <View className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <Text className="text-base font-bold text-white">
+                Nenhum filme encontrado.
+              </Text>
+              <Text className="mt-2 text-sm leading-5 text-light-200">
+                Tente usar menos detalhes ou trocar o gênero da descrição.
+              </Text>
+            </View>
+          ) : null}
+        </ScrollView>
+      </View>
+    </KeyboardAvoidingView>
+  </Modal>
 );
 
 export default Index;
