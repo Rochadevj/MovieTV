@@ -10,6 +10,12 @@ import { images } from "@/constants/images";
 import { fetchMovies } from "@/services/api";
 import { updateSearchCount } from "@/services/appwrite";
 
+const trackSearch = (query: string, movie: Movie) => {
+  updateSearchCount(query, movie).catch((error) => {
+    console.warn("Falha ao registrar busca no Appwrite:", error);
+  });
+};
+
 const Search = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenreId, setSelectedGenreId] = useState<number | null>(null);
@@ -25,7 +31,8 @@ const Search = () => {
     let active = true;
 
     const timeoutId = setTimeout(async () => {
-      const hasSearch = searchQuery.trim().length > 0;
+      const normalizedQuery = searchQuery.trim();
+      const hasSearch = normalizedQuery.length > 0;
       const hasGenre = selectedGenreId !== null;
 
       if (!hasSearch && !hasGenre) {
@@ -40,7 +47,7 @@ const Search = () => {
         setError(null);
 
         const results = await fetchMovies({
-          query: searchQuery,
+          query: normalizedQuery,
           genreId: selectedGenreId,
         });
 
@@ -48,8 +55,8 @@ const Search = () => {
 
         setMovies(results);
 
-        if (hasSearch && results.length > 0 && results[0]) {
-          await updateSearchCount(searchQuery, results[0]);
+        if (hasSearch && results[0]) {
+          trackSearch(normalizedQuery, results[0]);
         }
       } catch (err) {
         if (!active) return;
@@ -114,7 +121,9 @@ const Search = () => {
 
             <View className="mb-5">
               <View className="mb-3">
-                <Text className="text-xs uppercase tracking-[2px] text-light-300">Gêneros</Text>
+                <Text className="text-xs uppercase tracking-[2px] text-light-300">
+                  Gêneros
+                </Text>
                 <Text className="text-lg font-bold text-white">Filtrar filmes</Text>
               </View>
               <GenreFilter
@@ -140,7 +149,9 @@ const Search = () => {
             {!loading && !error && hasActiveFilter && movies.length > 0 && (
               <View className="mb-2 mt-2 flex-row items-end justify-between">
                 <View>
-                  <Text className="text-xs uppercase tracking-[2px] text-light-300">Resultados</Text>
+                  <Text className="text-xs uppercase tracking-[2px] text-light-300">
+                    Resultados
+                  </Text>
                   <Text className="text-xl font-bold text-white">
                     {searchQuery.trim() ? (
                       <>
@@ -151,7 +162,9 @@ const Search = () => {
                     )}
                   </Text>
                 </View>
-                <Text className="text-sm text-light-200">{movies.length} encontrados</Text>
+                <Text className="text-sm text-light-200">
+                  {movies.length} encontrados
+                </Text>
               </View>
             )}
           </>
