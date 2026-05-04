@@ -1,21 +1,29 @@
 import { icons } from "@/constants/icons";
 import { useFavorites } from "@/contexts/FavoriteContext";
 import {
+  fetchMovieCertification,
+  fetchMovieCredits,
   fetchMovieDetails,
   fetchTrailer,
   fetchWatchProviders,
+  type MovieCastMember,
+  type MovieCredits,
   type WatchProvider,
   type WatchProviders,
 } from "@/services/api";
 import useFetch from "@/services/usefetch";
+import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import type { ComponentProps } from "react";
 import { useState } from "react";
 import {
   ActivityIndicator,
   Image,
   ImageBackground,
+  ImageSourcePropType,
   Linking,
   ScrollView,
+  Share,
   Text,
   TouchableOpacity,
   View,
@@ -27,6 +35,9 @@ const imageUrl = (path?: string | null, size = "w780") =>
 
 const providerLogoUrl = (path?: string | null) =>
   path ? `https://image.tmdb.org/t/p/w92${path}` : null;
+
+const profileImageUrl = (path?: string | null) =>
+  path ? `https://image.tmdb.org/t/p/w185${path}` : null;
 
 const formatRuntime = (runtime?: number | null) => {
   if (!runtime) return "N/A";
@@ -67,12 +78,25 @@ const formatStatus = (status?: string | null) => {
   return status ? statusMap[status] ?? status : "N/A";
 };
 
+const formatCertification = (certification?: string | null) => {
+  if (!certification) return "Não informada";
+  if (certification === "L") return "Livre";
+  if (/^\d+$/.test(certification)) return `${certification} anos`;
+  return certification;
+};
+
 const getProviderGroups = (providers: WatchProviders | null) =>
   [
     { title: "Streaming", items: providers?.flatrate ?? [] },
     { title: "Alugar", items: providers?.rent ?? [] },
     { title: "Comprar", items: providers?.buy ?? [] },
   ].filter((group) => group.items.length > 0);
+
+const getDirectors = (credits: MovieCredits | null) =>
+  credits?.crew
+    ?.filter((member) => member.job === "Director")
+    .map((member) => member.name)
+    .filter(Boolean) ?? [];
 
 const Details = () => {
   const router = useRouter();
@@ -93,11 +117,23 @@ const Details = () => {
     Number.isFinite(movieId)
   );
 
+  const { data: credits, loading: creditsLoading } = useFetch(
+    () => fetchMovieCredits(movieId),
+    Number.isFinite(movieId)
+  );
+
+  const { data: certification } = useFetch(
+    () => fetchMovieCertification(movieId),
+    Number.isFinite(movieId)
+  );
+
   const favorite = movie ? isFavorite(movie.id) : false;
   const heroImage =
     imageUrl(movie?.backdrop_path, "w780") ?? imageUrl(movie?.poster_path, "w780");
   const posterImage = imageUrl(movie?.poster_path, "w500");
   const year = movie?.release_date?.split("-")[0] ?? "N/A";
+  const directors = getDirectors(credits);
+  const directorNames = directors.length ? directors.join(", ") : "Não informado";
 
   const handlePlayPress = async () => {
     try {
@@ -129,6 +165,22 @@ const Details = () => {
       vote_average: movie.vote_average,
       release_date: movie.release_date,
     });
+  };
+
+  const handleSharePress = async () => {
+    if (!movie) return;
+
+    const movieUrl = movie.homepage || `https://www.themoviedb.org/movie/${movie.id}`;
+
+    try {
+      await Share.share({
+        title: movie.title,
+        message: `Veja "${movie.title}" no MovieTV: ${movieUrl}`,
+        url: movieUrl,
+      });
+    } catch (err) {
+      console.error("Erro ao compartilhar:", err);
+    }
   };
 
   if (loading) {
@@ -178,11 +230,15 @@ const Details = () => {
             <SafeAreaView className="absolute left-0 right-0 top-0 px-5">
               <View className="mt-2 flex-row items-center justify-between">
                 <IconButton icon={icons.arrow} rotate onPress={router.back} />
-                <IconButton
-                  icon={icons.save}
-                  active={favorite}
-                  onPress={handleFavoritePress}
-                />
+
+                <View className="flex-row gap-2">
+                  <VectorIconButton icon="share-2" onPress={handleSharePress} />
+                  <IconButton
+                    icon={icons.save}
+                    active={favorite}
+                    onPress={handleFavoritePress}
+                  />
+                </View>
               </View>
             </SafeAreaView>
 
@@ -224,6 +280,7 @@ const Details = () => {
               <View className="mt-5 flex-row flex-wrap gap-2">
                 <MetaPill label={`${movie.vote_average.toFixed(1)}/10`} icon={icons.star} />
                 <MetaPill label={formatRuntime(movie.runtime)} />
+                <MetaPill label={formatCertification(certification)} />
                 <MetaPill label={formatStatus(movie.status)} />
               </View>
 
@@ -275,6 +332,12 @@ const Details = () => {
           </Text>
 
           <View className="mt-7">
+            <SectionTitle eyebrow="Equipe" title="Direção e elenco" />
+            <DirectorSummary loading={creditsLoading} directors={directorNames} />
+            <CastList loading={creditsLoading} cast={credits?.cast ?? []} />
+          </View>
+
+          <View className="mt-7">
             <SectionTitle eyebrow="Streaming" title="Onde assistir" />
             <WatchProvidersSection loading={providersLoading} providers={providers} />
           </View>
@@ -306,6 +369,8 @@ const Details = () => {
             <View className="mt-3 flex-row flex-wrap gap-3">
               <InfoCard label="Lançamento" value={formatDate(movie.release_date)} />
               <InfoCard label="Duração" value={formatRuntime(movie.runtime)} />
+              <InfoCard label="Classificação" value={formatCertification(certification)} />
+              <InfoCard label="Direção" value={directorNames} />
               <InfoCard label="Avaliação" value={`${movie.vote_average.toFixed(1)}/10`} />
               <InfoCard label="Votos" value={movie.vote_count.toLocaleString("pt-BR")} />
               <InfoCard label="Orçamento" value={formatMoney(movie.budget)} />
@@ -335,7 +400,7 @@ const IconButton = ({
   active = false,
   rotate = false,
 }: {
-  icon: any;
+  icon: ImageSourcePropType;
   onPress: () => void;
   active?: boolean;
   rotate?: boolean;
@@ -356,7 +421,29 @@ const IconButton = ({
   </TouchableOpacity>
 );
 
-const MetaPill = ({ label, icon }: { label: string; icon?: any }) => (
+const VectorIconButton = ({
+  icon,
+  onPress,
+}: {
+  icon: ComponentProps<typeof Feather>["name"];
+  onPress: () => void;
+}) => (
+  <TouchableOpacity
+    onPress={onPress}
+    activeOpacity={0.8}
+    className="h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/45"
+  >
+    <Feather name={icon} size={19} color="#FFFFFF" />
+  </TouchableOpacity>
+);
+
+const MetaPill = ({
+  label,
+  icon,
+}: {
+  label: string;
+  icon?: ImageSourcePropType;
+}) => (
   <View className="flex-row items-center rounded-full border border-white/10 bg-black/35 px-3 py-2">
     {icon ? (
       <Image source={icon} className="mr-1.5 h-4 w-4" resizeMode="contain" />
@@ -373,6 +460,88 @@ const SectionTitle = ({ eyebrow, title }: { eyebrow: string; title: string }) =>
     <Text className="mt-1 text-xl font-black text-white">{title}</Text>
   </View>
 );
+
+const DirectorSummary = ({
+  loading,
+  directors,
+}: {
+  loading: boolean;
+  directors: string;
+}) => (
+  <View className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+    <Text className="text-xs uppercase tracking-[1px] text-light-300">
+      Direção
+    </Text>
+    {loading ? (
+      <ActivityIndicator size="small" color="#D6C7FF" className="mt-3 self-start" />
+    ) : (
+      <Text className="mt-2 text-base font-bold text-white" numberOfLines={2}>
+        {directors}
+      </Text>
+    )}
+  </View>
+);
+
+const CastList = ({
+  loading,
+  cast,
+}: {
+  loading: boolean;
+  cast: MovieCastMember[];
+}) => {
+  if (loading) {
+    return (
+      <View className="mt-3 h-28 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+        <ActivityIndicator size="small" color="#D6C7FF" />
+      </View>
+    );
+  }
+
+  if (!cast.length) {
+    return (
+      <View className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <Text className="text-sm text-light-200">Elenco não informado.</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      className="mt-3"
+      contentContainerStyle={{ gap: 12, paddingRight: 20 }}
+    >
+      {cast.slice(0, 12).map((member) => (
+        <CastCard key={`${member.id}-${member.order}`} member={member} />
+      ))}
+    </ScrollView>
+  );
+};
+
+const CastCard = ({ member }: { member: MovieCastMember }) => {
+  const photo = profileImageUrl(member.profile_path);
+
+  return (
+    <View className="w-24">
+      <View className="h-28 w-24 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+        <Image
+          source={{
+            uri: photo ?? "https://placehold.co/240x280/0f0d23/D6C7FF.png",
+          }}
+          className="h-full w-full"
+          resizeMode="cover"
+        />
+      </View>
+      <Text className="mt-2 text-sm font-bold leading-4 text-white" numberOfLines={2}>
+        {member.name}
+      </Text>
+      <Text className="mt-1 text-xs leading-4 text-light-300" numberOfLines={2}>
+        {member.character || "Personagem não informado"}
+      </Text>
+    </View>
+  );
+};
 
 const WatchProvidersSection = ({
   loading,
