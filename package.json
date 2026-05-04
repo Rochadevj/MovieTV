@@ -55,17 +55,22 @@
   "expo": {
     "name": "MovieTV",
     "slug": "movie_app",
+    "icon": "./assets/images/app-icon.png",
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/logo.png",
-          "backgroundColor": "#ffffff"
+          "image": "./assets/images/app-icon.png",
+          "backgroundColor": "#0f0d23"
         }
       ]
     ],
     "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/app-icon.png",
+        "backgroundColor": "#030014"
+      },
       "package": "com.henriquerocha.movie_app",
       "versionCode": 1
     },
