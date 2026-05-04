@@ -22,6 +22,33 @@ export type WatchProviders = {
   buy?: WatchProvider[];
 };
 
+export type MovieCastMember = {
+  id: number;
+  name: string;
+  character: string;
+  profile_path: string | null;
+  order: number;
+};
+
+export type MovieCrewMember = {
+  id: number;
+  name: string;
+  job: string;
+  department: string;
+};
+
+export type MovieCredits = {
+  cast: MovieCastMember[];
+  crew: MovieCrewMember[];
+};
+
+type MovieVideo = {
+  key?: string;
+  site?: string;
+  type?: string;
+  official?: boolean;
+};
+
 const getHeaders = () => {
   if (!TMDB_CONFIG.API_KEY) {
     throw new Error(
@@ -122,6 +149,69 @@ export const fetchMovieDetails = async (
   }
 };
 
+export const fetchMovieCredits = async (
+  movieId: number
+): Promise<MovieCredits | null> => {
+  try {
+    const response = await fetch(
+      `${TMDB_CONFIG.BASE_URL}/movie/${movieId}/credits?language=pt-BR`,
+      {
+        method: "GET",
+        headers: getHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Erro ao buscar elenco: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return {
+      cast: data.cast ?? [],
+      crew: data.crew ?? [],
+    };
+  } catch (error) {
+    console.error("Erro ao buscar elenco:", error);
+    return null;
+  }
+};
+
+export const fetchMovieCertification = async (
+  movieId: number,
+  country = "BR"
+): Promise<string | null> => {
+  try {
+    const response = await fetch(
+      `${TMDB_CONFIG.BASE_URL}/movie/${movieId}/release_dates`,
+      {
+        method: "GET",
+        headers: getHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Erro ao buscar classificação: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const results = data.results ?? [];
+    const countryRelease = results.find(
+      (item: any) => item.iso_3166_1 === country
+    );
+    const fallbackRelease = results.find((item: any) => item.iso_3166_1 === "US");
+    const releaseDates =
+      countryRelease?.release_dates ?? fallbackRelease?.release_dates ?? [];
+    const certification = releaseDates.find(
+      (release: any) => release.certification?.trim()
+    )?.certification;
+
+    return certification || null;
+  } catch (error) {
+    console.error("Erro ao buscar classificação:", error);
+    return null;
+  }
+};
+
 export const fetchTrailer = async (movieId: number): Promise<string | null> => {
   try {
     const response = await fetch(
@@ -137,10 +227,17 @@ export const fetchTrailer = async (movieId: number): Promise<string | null> => {
     }
 
     const data = await response.json();
-
-    const trailer = data.results.find(
-      (video: any) => video.site === "YouTube" && video.type === "Trailer"
-    );
+    const videos: MovieVideo[] = data.results ?? [];
+    const trailer =
+      videos.find(
+        (video) =>
+          video.site === "YouTube" &&
+          video.type === "Trailer" &&
+          video.official
+      ) ??
+      videos.find(
+        (video) => video.site === "YouTube" && video.type === "Trailer"
+      );
 
     return trailer?.key || null;
   } catch (error) {
