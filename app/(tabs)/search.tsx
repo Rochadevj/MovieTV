@@ -100,15 +100,8 @@ const Search = () => {
         contentContainerStyle={{ paddingBottom: 120 }}
         ListHeaderComponent={
           <>
-            <View className="mt-10 items-center">
-              <Image
-                source={icons.logo}
-                className="h-20 w-56"
-                resizeMode="contain"
-              />
-              <Text className="mt-1 text-sm text-light-200">
-                Busque por título ou filtre pelo gênero que você quer assistir.
-              </Text>
+            <View className="mt-8">
+              <SearchHeader />
             </View>
 
             <View className="my-5">
@@ -184,5 +177,44 @@ const Search = () => {
     </SafeAreaView>
   );
 };
+
+const SearchHeader = () => (
+  <View>
+    <View className="flex-row items-center justify-between">
+      <View className="flex-1 flex-row items-center">
+        <View className="h-12 w-12 items-center justify-center rounded-2xl border border-accent/30 bg-accent/15">
+          <View className="h-8 w-8 items-center justify-center rounded-full bg-accent">
+            <Image
+              source={icons.search}
+              className="h-4 w-4"
+              tintColor="#030014"
+              resizeMode="contain"
+            />
+          </View>
+        </View>
+
+        <View className="ml-3 flex-1">
+          <Text className="text-2xl font-black text-white" numberOfLines={1}>
+            Buscar
+          </Text>
+          <Text className="text-xs font-semibold uppercase tracking-[1px] text-light-300">
+            Catálogo MovieTV
+          </Text>
+        </View>
+      </View>
+
+      <View className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+        <Text className="text-xs font-bold text-light-100">BR</Text>
+      </View>
+    </View>
+
+    <Text className="mt-5 text-3xl font-black text-white">
+      Encontre filmes do seu jeito
+    </Text>
+    <Text className="mt-2 text-sm leading-5 text-light-200">
+      Busque por título ou filtre pelo gênero que você quer assistir.
+    </Text>
+  </View>
+);
 
 export default Search;
