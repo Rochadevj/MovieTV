@@ -1,29 +1,53 @@
-import { Tabs } from "expo-router";
 import { BlurView } from "expo-blur";
-import { Image, ImageBackground, View } from "react-native";
+import { Tabs } from "expo-router";
+import { Feather } from "@expo/vector-icons";
+import type { ComponentProps } from "react";
+import { View } from "react-native";
 
-import { icons } from "@/constants/icons";
-import { images } from "@/constants/images";
+type FeatherIconName = ComponentProps<typeof Feather>["name"];
 
-function TabIcon({ focused, icon }: { focused: boolean; icon: any }) {
-  if (focused) {
-    return (
-      <ImageBackground
-        source={images.highlight}
-        className="h-12 w-12 items-center justify-center rounded-full"
-        imageStyle={{ borderRadius: 999 }}
-      >
-        <Image source={icon} tintColor="#151312" className="h-5 w-5" />
-      </ImageBackground>
-    );
-  }
+const tabs = {
+  index: { title: "Início", icon: "home" },
+  search: { title: "Pesquisar", icon: "search" },
+  save: { title: "Salvos", icon: "bookmark" },
+  profile: { title: "Perfil", icon: "user" },
+} satisfies Record<string, { title: string; icon: FeatherIconName }>;
 
+function TabIcon({
+  focused,
+  icon,
+}: {
+  focused: boolean;
+  icon: FeatherIconName;
+}) {
   return (
-    <View className="items-center justify-center">
-      <View className="h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5">
-        <Image source={icon} tintColor="#A8B5DB" className="h-5 w-5" />
-      </View>
-      <View className="mt-1 h-1 w-1 rounded-full bg-white/20" />
+    <View className="h-16 w-16 items-center justify-center">
+      {focused ? (
+        <View
+          className="absolute h-12 w-12 rounded-2xl bg-accent"
+          style={{
+            shadowColor: "#AB8BFF",
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.45,
+            shadowRadius: 14,
+            elevation: 10,
+          }}
+        />
+      ) : (
+        <View className="absolute h-11 w-11 rounded-2xl bg-white/5" />
+      )}
+
+      <Feather
+        name={icon}
+        size={focused ? 23 : 21}
+        color={focused ? "#030014" : "#A8B5DB"}
+      />
+
+      <View
+        className={`absolute bottom-0 h-1 rounded-full ${
+          focused ? "w-5 bg-accent" : "w-1 bg-white/20"
+        }`}
+      />
     </View>
   );
 }
@@ -35,40 +59,45 @@ export default function TabsLayout() {
         tabBarShowLabel: false,
         tabBarHideOnKeyboard: true,
         tabBarItemStyle: {
+          height: 66,
           justifyContent: "center",
           alignItems: "center",
-          paddingVertical: 8,
         },
         tabBarStyle: {
-          backgroundColor: "rgba(10, 9, 24, 0.85)",
-          borderRadius: 999,
-          marginHorizontal: 16,
+          backgroundColor: "rgba(8, 7, 20, 0.72)",
+          borderRadius: 28,
+          marginHorizontal: 18,
           marginBottom: 18,
-          height: 72,
-          paddingHorizontal: 12,
-          paddingVertical: 6,
+          height: 74,
+          paddingHorizontal: 10,
+          paddingTop: 4,
+          paddingBottom: 4,
           position: "absolute",
-          overflow: "hidden",
+          overflow: "visible",
           borderWidth: 1,
           borderColor: "rgba(255, 255, 255, 0.12)",
           shadowColor: "#000",
-          shadowOffset: { width: 0, height: 18 },
-          shadowOpacity: 0.4,
-          shadowRadius: 26,
-          elevation: 22,
+          shadowOffset: { width: 0, height: 16 },
+          shadowOpacity: 0.38,
+          shadowRadius: 24,
+          elevation: 18,
         },
         tabBarBackground: () => (
-          <BlurView intensity={28} tint="dark" style={{ flex: 1 }} />
+          <View className="flex-1 overflow-hidden rounded-[28px]">
+            <BlurView intensity={32} tint="dark" style={{ flex: 1 }} />
+            <View className="absolute inset-0 bg-primary/35" />
+            <View className="absolute left-7 right-7 top-0 h-px bg-white/15" />
+          </View>
         ),
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Início",
+          title: tabs.index.title,
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.home} />
+            <TabIcon focused={focused} icon={tabs.index.icon} />
           ),
         }}
       />
@@ -76,10 +105,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="search"
         options={{
-          title: "Pesquisar",
+          title: tabs.search.title,
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.search} />
+            <TabIcon focused={focused} icon={tabs.search.icon} />
           ),
         }}
       />
@@ -87,10 +116,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="save"
         options={{
-          title: "Salvos",
+          title: tabs.save.title,
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.save} />
+            <TabIcon focused={focused} icon={tabs.save.icon} />
           ),
         }}
       />
@@ -98,10 +127,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Perfil",
+          title: tabs.profile.title,
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.person} />
+            <TabIcon focused={focused} icon={tabs.profile.icon} />
           ),
         }}
       />
