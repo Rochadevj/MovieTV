@@ -280,7 +280,10 @@ const Details = () => {
               <View className="mt-5 flex-row flex-wrap gap-2">
                 <MetaPill label={`${movie.vote_average.toFixed(1)}/10`} icon={icons.star} />
                 <MetaPill label={formatRuntime(movie.runtime)} />
-                <MetaPill label={formatCertification(certification)} />
+                <MetaPill
+                  label={formatCertification(certification)}
+                  prefix="Classificação indicativa"
+                />
                 <MetaPill label={formatStatus(movie.status)} />
               </View>
 
@@ -369,7 +372,10 @@ const Details = () => {
             <View className="mt-3 flex-row flex-wrap gap-3">
               <InfoCard label="Lançamento" value={formatDate(movie.release_date)} />
               <InfoCard label="Duração" value={formatRuntime(movie.runtime)} />
-              <InfoCard label="Classificação" value={formatCertification(certification)} />
+              <InfoCard
+                label="Classificação indicativa"
+                value={formatCertification(certification)}
+              />
               <InfoCard label="Direção" value={directorNames} />
               <InfoCard label="Avaliação" value={`${movie.vote_average.toFixed(1)}/10`} />
               <InfoCard label="Votos" value={movie.vote_count.toLocaleString("pt-BR")} />
@@ -440,15 +446,24 @@ const VectorIconButton = ({
 const MetaPill = ({
   label,
   icon,
+  prefix,
 }: {
   label: string;
   icon?: ImageSourcePropType;
+  prefix?: string;
 }) => (
-  <View className="flex-row items-center rounded-full border border-white/10 bg-black/35 px-3 py-2">
+  <View className="max-w-full flex-row items-center rounded-full border border-white/10 bg-black/35 px-3 py-2">
     {icon ? (
       <Image source={icon} className="mr-1.5 h-4 w-4" resizeMode="contain" />
     ) : null}
-    <Text className="text-sm font-bold text-white">{label}</Text>
+    {prefix ? (
+      <Text className="mr-1 text-xs font-semibold text-light-300">
+        {prefix}:
+      </Text>
+    ) : null}
+    <Text className="text-sm font-bold text-white" numberOfLines={1}>
+      {label}
+    </Text>
   </View>
 );
 
