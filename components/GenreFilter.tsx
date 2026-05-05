@@ -1,6 +1,12 @@
 import { fetchGenres, type MovieGenre } from "@/services/api";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 type GenreFilterProps = {
   selectedGenreId: number | null;
@@ -38,7 +44,7 @@ const GenreFilter = ({ selectedGenreId, onSelectGenre }: GenreFilterProps) => {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: 8, paddingRight: 20 }}
+      contentContainerStyle={{ gap: 10, paddingRight: 20 }}
     >
       <GenreChip
         label="Todos"
@@ -69,15 +75,13 @@ const GenreChip = ({
 }) => (
   <TouchableOpacity
     onPress={onPress}
-    activeOpacity={0.75}
-    className={`h-10 justify-center rounded-full border px-4 ${
-      active
-        ? "border-accent bg-accent"
-        : "border-white/10 bg-dark-200/90"
+    activeOpacity={0.78}
+    className={`h-11 justify-center rounded-full border px-4 ${
+      active ? "border-accent bg-accent" : "border-white/10 bg-white/5"
     }`}
   >
     <Text
-      className={`text-sm font-semibold ${
+      className={`text-sm font-bold ${
         active ? "text-primary" : "text-light-100"
       }`}
     >
