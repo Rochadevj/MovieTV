@@ -1,6 +1,8 @@
 import { avatars } from "@/constants/avatars";
 import { icons } from "@/constants/icons";
+import { images } from "@/constants/images";
 import { useFavorites } from "@/contexts/FavoriteContext";
+import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   FlatList,
@@ -15,12 +17,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const USERNAME = "Cine Explorer";
-
 const avatarOptions = Object.values(avatars);
 
 const Profile = () => {
   const { favorites } = useFavorites();
-  const [selectedAvatar, setSelectedAvatar] = useState<ImageSourcePropType>(avatars.avatar1);
+  const router = useRouter();
+  const [selectedAvatar, setSelectedAvatar] = useState<ImageSourcePropType>(
+    avatars.avatar1
+  );
   const [showModal, setShowModal] = useState(false);
 
   const profileLevel = useMemo(() => {
@@ -44,60 +48,64 @@ const Profile = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-primary">
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-        <View className="px-5 pt-5">
+      <Image
+        source={images.bg}
+        className="absolute h-full w-full opacity-20"
+        resizeMode="cover"
+      />
+      <View className="absolute inset-0 bg-primary/80" />
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
+        <View className="px-5 pt-6">
           <View className="flex-row items-center justify-between">
             <View>
-              <Text className="text-xs uppercase tracking-[2px] text-light-300">Perfil</Text>
-              <Text className="mt-1 text-3xl font-black text-white">Sua área</Text>
+              <Text className="text-xs uppercase tracking-[2px] text-light-300">
+                Perfil
+              </Text>
+              <Text className="mt-1 text-3xl font-black text-white">
+                Sua área
+              </Text>
             </View>
             <View className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
               <Text className="text-xs font-semibold text-light-100">MovieTV</Text>
             </View>
           </View>
 
-          <View className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-dark-200/95">
-            <View className="absolute left-0 right-0 top-0 h-24 bg-accent/20" />
-            <View className="px-5 pb-5 pt-7">
-              <View className="flex-row items-end justify-between">
-                <TouchableOpacity
-                  onPress={() => setShowModal(true)}
-                  activeOpacity={0.85}
-                  className="rounded-full border-2 border-accent bg-primary p-1"
-                >
-                  <Image
-                    source={selectedAvatar}
-                    className="h-28 w-28 rounded-full bg-dark-100"
-                    resizeMode="cover"
-                  />
-                </TouchableOpacity>
+          <View className="mt-6 overflow-hidden rounded-[28px] border border-white/10 bg-dark-200/95 p-5">
+            <View className="absolute left-0 right-0 top-0 h-px bg-white/15" />
+            <View className="flex-row items-center">
+              <TouchableOpacity
+                onPress={() => setShowModal(true)}
+                activeOpacity={0.85}
+                className="rounded-[28px] border-2 border-accent bg-primary p-1"
+              >
+                <Image
+                  source={selectedAvatar}
+                  className="h-24 w-24 rounded-[24px] bg-dark-100"
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
 
+              <View className="ml-4 flex-1">
+                <Text className="text-2xl font-black text-white">{USERNAME}</Text>
+                <Text className="mt-1 text-sm font-semibold text-light-200">
+                  {profileLevel}
+                </Text>
                 <TouchableOpacity
                   onPress={() => setShowModal(true)}
                   activeOpacity={0.85}
-                  className="rounded-full border border-white/10 bg-white/10 px-4 py-2"
+                  className="mt-4 self-start rounded-full border border-white/10 bg-white/10 px-4 py-2"
                 >
                   <Text className="text-sm font-bold text-white">Trocar avatar</Text>
                 </TouchableOpacity>
               </View>
-
-              <Text className="mt-4 text-2xl font-black text-white">{USERNAME}</Text>
-              <Text className="mt-1 text-sm text-light-200">
-                {profileLevel}
-              </Text>
-
-              <View className="mt-4 flex-row flex-wrap gap-2">
-                <Badge label={`${favorites.length} salvos`} />
-                <Badge label={`Média ${averageRating}`} />
-                <Badge label="Catálogo pessoal" />
-              </View>
             </View>
-          </View>
 
-          <View className="mt-6">
-            <SectionTitle eyebrow="Visão geral" title="Seu painel" />
-            <View className="mt-3 flex-row gap-3">
-              <StatCard value={String(favorites.length)} label="Filmes salvos" />
+            <View className="mt-5 flex-row gap-3">
+              <StatCard value={String(favorites.length)} label="Salvos" />
               <StatCard value={averageRating} label="Nota média" />
               <StatCard value={favorites.length ? "Ativo" : "Inicial"} label="Status" />
             </View>
@@ -129,7 +137,12 @@ const Profile = () => {
             {recentFavorites.length ? (
               <View className="mt-3 flex-row gap-3">
                 {recentFavorites.map((movie) => (
-                  <View key={movie.id} className="w-[31%] overflow-hidden rounded-2xl border border-white/10 bg-dark-200">
+                  <TouchableOpacity
+                    key={movie.id}
+                    onPress={() => router.push(`/movie/${movie.id}`)}
+                    activeOpacity={0.85}
+                    className="w-[31%] overflow-hidden rounded-2xl border border-white/10 bg-dark-200"
+                  >
                     <Image
                       source={{
                         uri: movie.poster_path
@@ -144,7 +157,7 @@ const Profile = () => {
                         {movie.title}
                       </Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             ) : (
@@ -168,12 +181,6 @@ const Profile = () => {
   );
 };
 
-const Badge = ({ label }: { label: string }) => (
-  <View className="rounded-full border border-accent/20 bg-accent/10 px-3 py-1.5">
-    <Text className="text-xs font-bold text-accent">{label}</Text>
-  </View>
-);
-
 const SectionTitle = ({ eyebrow, title }: { eyebrow: string; title: string }) => (
   <View>
     <Text className="text-xs uppercase tracking-[2px] text-light-300">{eyebrow}</Text>
@@ -182,9 +189,9 @@ const SectionTitle = ({ eyebrow, title }: { eyebrow: string; title: string }) =>
 );
 
 const StatCard = ({ value, label }: { value: string; label: string }) => (
-  <View className="min-h-24 flex-1 justify-between rounded-2xl border border-white/10 bg-white/5 p-4">
-    <Text className="text-2xl font-black text-white">{value}</Text>
-    <Text className="text-xs font-semibold text-light-300">{label}</Text>
+  <View className="min-h-20 flex-1 justify-between rounded-2xl border border-white/10 bg-white/5 p-3">
+    <Text className="text-xl font-black text-white">{value}</Text>
+    <Text className="mt-2 text-xs font-semibold text-light-300">{label}</Text>
   </View>
 );
 
@@ -193,7 +200,7 @@ const PreferenceRow = ({
   title,
   description,
 }: {
-  icon: any;
+  icon: ImageSourcePropType;
   title: string;
   description: string;
 }) => (

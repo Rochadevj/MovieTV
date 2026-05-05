@@ -32,6 +32,9 @@ type TrendingMovie = {
   movie_id: number;
   title: string;
   poster_url: string;
+  backdrop_url: string;
+  vote_average: number;
+  release_date: string;
 };
 
 type TabParamList = {
@@ -81,6 +84,7 @@ const Index = () => {
 
   const featuredMovie = trendingMovies[0];
   const renderMovie = ({ item }: { item: Movie }) => <MovieCard {...item} />;
+  const isRefreshingCatalog = loadingMovies && !loadingMore && movies.length > 0;
 
   useEffect(() => {
     const loadMovies = async () => {
@@ -124,6 +128,11 @@ const Index = () => {
           poster_url: movie.poster_path
             ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
             : "",
+          backdrop_url: movie.backdrop_path
+            ? `https://image.tmdb.org/t/p/w780${movie.backdrop_path}`
+            : "",
+          vote_average: movie.vote_average ?? 0,
+          release_date: movie.release_date ?? "",
         }));
 
         setTrendingMovies(formatted);
@@ -153,7 +162,6 @@ const Index = () => {
 
   const handleGenreSelect = (genreId: number | null) => {
     setSelectedGenreId(genreId);
-    setMovies([]);
     setError(null);
     setPage(1);
   };
@@ -303,30 +311,44 @@ const Index = () => {
               <TouchableOpacity
                 activeOpacity={0.88}
                 onPress={() => router.push(`/movie/${featuredMovie.movie_id}`)}
-                className="mx-5 mt-6 overflow-hidden rounded-2xl border border-white/10 bg-dark-200"
+                className="mx-5 mt-6 overflow-hidden rounded-[28px] border border-white/10 bg-dark-200"
               >
                 <ImageBackground
-                  source={{ uri: featuredMovie.poster_url }}
-                  className="h-64 justify-end"
+                  source={{
+                    uri:
+                      featuredMovie.backdrop_url ||
+                      featuredMovie.poster_url ||
+                      "https://placehold.co/900x520/0f0d23/D6C7FF.png",
+                  }}
+                  className="h-72 justify-end"
                   resizeMode="cover"
                 >
-                  <View className="absolute inset-0 bg-black/35" />
-                  <View className="absolute bottom-0 left-0 right-0 h-32 bg-primary/80" />
+                  <View className="absolute inset-0 bg-black/30" />
+                  <View className="absolute bottom-0 left-0 right-0 h-40 bg-primary/85" />
 
-                  <View className="p-4">
+                  <View className="p-5">
                     <View className="mb-3 flex-row items-center justify-between">
                       <View className="rounded-full bg-white/90 px-3 py-1">
                         <Text className="text-xs font-black uppercase text-primary">
                           Destaque
                         </Text>
                       </View>
-                      <Text className="rounded-full bg-black/55 px-3 py-1 text-xs font-bold text-white">
-                        Em alta hoje
-                      </Text>
+                      <View className="flex-row items-center rounded-full bg-black/55 px-3 py-1">
+                        <Image source={icons.star} className="h-3.5 w-3.5" />
+                        <Text className="ml-1 text-xs font-bold text-white">
+                          {featuredMovie.vote_average.toFixed(1)}
+                        </Text>
+                      </View>
                     </View>
 
                     <Text className="text-2xl font-black text-white" numberOfLines={2}>
                       {featuredMovie.title}
+                    </Text>
+                    <Text className="mt-1 text-sm font-semibold text-light-200">
+                      Em alta hoje
+                      {featuredMovie.release_date
+                        ? ` • ${featuredMovie.release_date.split("-")[0]}`
+                        : ""}
                     </Text>
                     <View className="mt-4 flex-row items-center justify-between">
                       <Text className="text-sm font-semibold text-light-100">
@@ -402,8 +424,17 @@ const Index = () => {
               <SectionHeader
                 eyebrow="Catálogo"
                 title={selectedGenreId ? "Filmes filtrados" : "Todos os filmes"}
-                action={`${movies.length} exibidos`}
+                action={isRefreshingCatalog ? "Atualizando" : `${movies.length} exibidos`}
               />
+              {isRefreshingCatalog ? (
+                <View className="mx-5 mt-3 flex-row items-center rounded-full border border-white/10 bg-white/5 px-4 py-2">
+                  <ActivityIndicator size="small" color="#D6C7FF" />
+                  <Text className="ml-2 text-xs font-semibold text-light-200">
+                    Carregando filmes deste gênero...
+                  </Text>
+                </View>
+              ) : null}
+              <View className="h-3" />
             </View>
           </>
         }
