@@ -1,8 +1,8 @@
+import { FavoriteProvider } from "@/contexts/FavoriteContext";
 import { Stack } from "expo-router";
 import { StatusBar } from "react-native";
 import "./globals.css";
 
-import { FavoriteProvider } from "@/contexts/FavoriteContext";
 export default function RootLayout() {
   return (
     <FavoriteProvider>
@@ -13,7 +13,7 @@ export default function RootLayout() {
       />
       <Stack>
         <Stack.Screen
-          name="splash"
+          name="index"
           options={{ headerShown: false }}
         />
         <Stack.Screen
@@ -26,10 +26,10 @@ export default function RootLayout() {
         />
         <Stack.Screen
           name="trailer"
-          options={{ 
+          options={{
             headerShown: false,
-            presentation: 'fullScreenModal', 
-            animation: 'fade'
+            presentation: "fullScreenModal",
+            animation: "fade",
           }}
         />
       </Stack>
