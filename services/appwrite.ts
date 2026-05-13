@@ -9,6 +9,22 @@ const client = new Client()
 
 const database = new Databases(client);
 
+const isAppwriteProjectPausedError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return message.toLowerCase().includes("project is paused");
+};
+
+let appwriteAnalyticsWarningShown = false;
+
+const handleSearchAnalyticsError = (error: unknown) => {
+  if (isAppwriteProjectPausedError(error)) return;
+  if (appwriteAnalyticsWarningShown) return;
+
+  appwriteAnalyticsWarningShown = true;
+  console.warn("Não foi possível registrar analytics de busca no Appwrite.", error);
+};
+
 export const updateSearchCount = async (query: string, movie: Movie) => {
   try {
     const result = await database.listDocuments(DATABASE_ID, COLLECTION_ID, [
@@ -35,8 +51,7 @@ export const updateSearchCount = async (query: string, movie: Movie) => {
       });
     }
   } catch (error) {
-    console.error("Erro ao atualizar contagem de busca:", error);
-    throw error;
+    handleSearchAnalyticsError(error);
   }
 };
 
