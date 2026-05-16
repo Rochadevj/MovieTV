@@ -267,6 +267,31 @@ export const fetchMovieDetails = async (
   }
 };
 
+export const fetchMovieRecommendations = async (
+  movieId: number,
+  page = 1
+): Promise<Movie[]> => {
+  try {
+    const response = await fetch(
+      `${TMDB_CONFIG.BASE_URL}/movie/${movieId}/recommendations?language=pt-BR&page=${page}`,
+      {
+        method: "GET",
+        headers: getHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Erro ao buscar recomendações: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.results ?? [];
+  } catch (error) {
+    console.error("Erro ao buscar recomendações:", error);
+    return [];
+  }
+};
+
 export const fetchMovieCredits = async (
   movieId: number
 ): Promise<MovieCredits | null> => {
