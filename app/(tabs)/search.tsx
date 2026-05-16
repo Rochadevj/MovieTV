@@ -1,7 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Feather } from "@expo/vector-icons";
+import { useLocalSearchParams } from "expo-router";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -48,6 +49,12 @@ const RATING_OPTIONS = [
 const providerLogoUrl = (path?: string | null) =>
   path ? `https://image.tmdb.org/t/p/w92${path}` : null;
 
+const getParamValue = (value: string | string[] | undefined) =>
+  Array.isArray(value) ? value[0] : value;
+
+const isMovieSortBy = (value?: string): value is MovieSortBy =>
+  SORT_OPTIONS.some((option) => option.value === value);
+
 const trackSearch = (query: string, movie: Movie) => {
   updateSearchCount(query, movie);
 };
@@ -82,6 +89,13 @@ const mergeUniqueMovies = (currentMovies: Movie[], nextMovies: Movie[]) => {
 };
 
 const Search = () => {
+  const params = useLocalSearchParams<{
+    minRating?: string;
+    sortBy?: string;
+    expandFilters?: string;
+    preset?: string;
+  }>();
+  const handledPresetRef = useRef<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenreId, setSelectedGenreId] = useState<number | null>(null);
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -334,6 +348,43 @@ const Search = () => {
     setOnlyWithTrailer(false);
     setSelectedProviderIds([]);
   };
+
+  useEffect(() => {
+    const ratingValue = getParamValue(params.minRating);
+    const sortValue = getParamValue(params.sortBy);
+    const expandValue = getParamValue(params.expandFilters);
+    const explicitPreset = getParamValue(params.preset);
+
+    if (!ratingValue && !sortValue && !expandValue && !explicitPreset) return;
+
+    const presetSignal =
+      explicitPreset ?? `${ratingValue ?? ""}-${sortValue ?? ""}-${expandValue ?? ""}`;
+
+    if (!presetSignal || handledPresetRef.current === presetSignal) return;
+
+    const ratingParam = Number(ratingValue);
+
+    handledPresetRef.current = presetSignal;
+    resetResults();
+    setYearFilter("");
+    setMinRating(null);
+    setSortBy("popularity.desc");
+    setOnlyStreaming(false);
+    setOnlyWithTrailer(false);
+    setSelectedProviderIds([]);
+
+    if (Number.isFinite(ratingParam) && ratingParam > 0) {
+      setMinRating(ratingParam);
+    }
+
+    if (isMovieSortBy(sortValue)) {
+      setSortBy(sortValue);
+    }
+
+    if (expandValue === "1") {
+      setFiltersExpanded(true);
+    }
+  }, [params.expandFilters, params.minRating, params.preset, params.sortBy]);
 
   const loadMoreMovies = () => {
     if (

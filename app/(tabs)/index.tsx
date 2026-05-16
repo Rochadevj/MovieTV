@@ -1,6 +1,6 @@
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useNavigation } from "@react-navigation/native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -62,10 +62,15 @@ const parseMovieTitles = (text: string) =>
     .filter(Boolean)
     .slice(0, 4);
 
+const getParamValue = (value: string | string[] | undefined) =>
+  Array.isArray(value) ? value[0] : value;
+
 const Index = () => {
   const router = useRouter();
+  const { openAi } = useLocalSearchParams<{ openAi?: string }>();
   const navigation = useNavigation<BottomTabNavigationProp<TabParamList>>();
   const listRef = useRef<FlatList<Movie>>(null);
+  const handledOpenAiParam = useRef<string | null>(null);
 
   const [movies, setMovies] = useState<Movie[]>([]);
   const [page, setPage] = useState(1);
@@ -177,6 +182,15 @@ const Index = () => {
     setAiModalVisible(true);
     setAiError(null);
   };
+
+  useEffect(() => {
+    const openAiSignal = getParamValue(openAi);
+
+    if (!openAiSignal || handledOpenAiParam.current === openAiSignal) return;
+
+    handledOpenAiParam.current = openAiSignal;
+    openAiModal();
+  }, [openAi]);
 
   const closeAiModal = () => {
     setAiModalVisible(false);
