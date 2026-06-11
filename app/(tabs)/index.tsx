@@ -1,4 +1,5 @@
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -321,6 +322,10 @@ const Index = () => {
               <AIFinderCard onPress={openAiModal} />
             </View>
 
+            <View className="mt-3 px-5">
+              <MatchFinderCard onPress={() => router.push("/match")} />
+            </View>
+
             {featuredMovie ? (
               <TouchableOpacity
                 activeOpacity={0.88}
@@ -567,6 +572,36 @@ const AIFinderCard = ({ onPress }: { onPress: () => void }) => (
         <Text className="mt-1 text-sm leading-5 text-light-200">
           Descreva uma ideia, clima ou gênero e receba sugestões.
         </Text>
+      </View>
+    </View>
+  </TouchableOpacity>
+);
+
+const MatchFinderCard = ({ onPress }: { onPress: () => void }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    activeOpacity={0.86}
+    className="overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4"
+  >
+    <View className="flex-row items-center">
+      <View className="h-11 w-11 items-center justify-center rounded-2xl bg-accent/15">
+        <Feather name="heart" size={21} color="#D6C7FF" />
+      </View>
+
+      <View className="ml-3 flex-1">
+        <View className="flex-row items-center">
+          <Text className="text-base font-black text-white">Match de filmes</Text>
+          <View className="ml-2 rounded-full bg-accent px-2 py-0.5">
+            <Text className="text-[10px] font-black text-primary">NOVO</Text>
+          </View>
+        </View>
+        <Text className="mt-1 text-sm leading-5 text-light-200">
+          Duas pessoas escolhem gostos e o app encontra o filme ideal para assistir juntos.
+        </Text>
+      </View>
+
+      <View className="ml-2 h-9 w-9 items-center justify-center rounded-full bg-white/10">
+        <Feather name="arrow-right" size={18} color="#FFFFFF" />
       </View>
     </View>
   </TouchableOpacity>
