@@ -174,6 +174,45 @@ export const fetchMovies = async ({
   return results;
 };
 
+export const fetchMoviesByGenreIds = async ({
+  genreIds,
+  page = 1,
+  minRating = 6.5,
+  sortBy = "popularity.desc",
+}: {
+  genreIds: number[];
+  page?: number;
+  minRating?: number;
+  sortBy?: MovieSortBy;
+}): Promise<Movie[]> => {
+  const params = new URLSearchParams({
+    language: "pt-BR",
+    page: String(page),
+    sort_by: sortBy,
+    "vote_average.gte": String(minRating),
+    "vote_count.gte": "80",
+  });
+
+  if (genreIds.length) {
+    params.set("with_genres", genreIds.join(","));
+  }
+
+  const response = await fetch(
+    `${TMDB_CONFIG.BASE_URL}/discover/movie?${params.toString()}`,
+    {
+      method: "GET",
+      headers: getHeaders(),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Erro ao buscar filmes por gêneros: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.results ?? [];
+};
+
 const filterMoviesByStreamingAvailability = async (
   movies: Movie[],
   providerIds: number[]
