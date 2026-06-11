@@ -25,6 +25,10 @@ export default function RootLayout() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
+          name="match"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
           name="trailer"
           options={{
             headerShown: false,
